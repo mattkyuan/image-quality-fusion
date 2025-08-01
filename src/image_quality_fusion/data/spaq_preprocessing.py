@@ -32,9 +32,8 @@ import sys
 from typing import Optional, Tuple, List
 import logging
 
-# Add project root to path
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
+# Use relative imports within the package
+from ..utils.paths import get_project_root, resolve_path_from_project_root
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

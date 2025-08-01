@@ -11,12 +11,16 @@ def monitor_training():
     print("🔍 Monitoring training progress...")
     
     # Check for key indicator files (relative to project root)
+    # Get project root from script location  
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent.parent  # scripts/training/ -> project_root
+    
     indicators = [
-        "../training_data/features.csv",
-        "../training_data/embeddings.npy", 
-        "../outputs/optimized_full_run/config.json",
-        "../outputs/optimized_full_run/model_best.pth",
-        "../outputs/optimized_full_run/training_results.json"
+        project_root / "training_data/features.csv",
+        project_root / "training_data/embeddings.npy", 
+        project_root / "outputs/fixed_run/config.json",
+        project_root / "outputs/fixed_run/model_best.pth",
+        project_root / "outputs/fixed_run/training_results.json"
     ]
     
     last_sizes = {}
@@ -25,7 +29,7 @@ def monitor_training():
         print(f"\n📊 Status check at {time.strftime('%H:%M:%S')}")
         
         for file_path in indicators:
-            path = Path(file_path)
+            path = file_path
             if path.exists():
                 size_mb = path.stat().st_size / (1024*1024)
                 
@@ -41,8 +45,9 @@ def monitor_training():
                 print(f"⏳ {Path(file_path).name}: Not created yet")
         
         # Check for log file
-        if Path("../training_log.txt").exists():
-            with open("../training_log.txt", 'r') as f:
+        log_file = project_root / "training_log.txt"
+        if log_file.exists():
+            with open(log_file, 'r') as f:
                 lines = f.readlines()
                 if lines:
                     last_line = lines[-1].strip()
@@ -50,7 +55,7 @@ def monitor_training():
                         print(f"📝 Latest: {last_line}")
         
         # Check if training is complete
-        if Path("../outputs/optimized_full_run/training_results.json").exists():
+        if (project_root / "outputs/fixed_run/training_results.json").exists():
             print("🎉 Training completed successfully!")
             break
             

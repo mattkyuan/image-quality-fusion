@@ -1,68 +1,92 @@
 # Python-generated files
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
+*.so
+.Python
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
 wheels/
-*.egg-info
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
 # Virtual environments
+.env
 .venv
-venv/
 env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Training artifacts
-experiments/
+# Training artifacts and outputs (exclude from Git, include in CI/CD)
 training_data/
 outputs/
-training_*.txt
-training_*.log
+experiments/
+checkpoints/
+runs/
+logs/
+wandb/
+tensorboard/
+
+# Model files (large binary files)
 *.pth
 *.ckpt
 *.pt
 *.onnx
-model_*.json
+*.safetensors
 model_*.pkl
+model_*.json
+*.bin
 
-# Feature files
-features.csv
-*_features.csv
+# Training logs and monitoring
+training_*.txt
+training_*.log
+*.out
+nohup.out
+monitor_*.log
+training_log.txt
+
+# Dataset files (too large for Git)
+datasets/spaq/images/
+datasets/spaq/*.zip
+datasets/spaq/*.z*
+datasets/processed/
+*.tar.gz
+
+# Feature cache files and preprocessed data
 embeddings.npy
 *_embeddings.npy
 features_*.npy
+features.csv
+*_features.csv
+features_embeddings.npy
+cached_features/
+preprocessed/
+processed/
 
-# Training logs and monitoring
-nohup.out
-*.out
-monitor_*.log
+# Additional logs and monitoring (consolidated)
+*.log
+debug.log
+error.log
+warnings.log
+performance.log
 
-# Dataset files (too large for git)
-datasets/spaq/
-datasets/processed/
-datasets/*/images/
-datasets/*/annotations.csv
-*.zip
-*.tar.gz
-*.z01
-*.z02
-*.z03
-*.z04
-*.z05
-*.z06
-
-# Cache files
-__pycache__/
-.cache/
-.pytest_cache/
-*.pyc
-*.pyo
-
-# Model checkpoints and exports
-checkpoints/
-saved_models/
-exported_models/
-
-# System files
+# Temporary files
+tmp/
+temp/
 .DS_Store
 Thumbs.db
 *.swp
@@ -73,13 +97,30 @@ Thumbs.db
 .idea/
 *.sublime-*
 
-# Logs
-*.log
-logs/
+# Backup files
+backup_*/
 
-# Temporary files
-tmp/
-temp/
+# Keep but ignore local settings
+.claude/settings.local.json
 
-# Lock files
-*.lock
+# Keep essential configs and metadata (exceptions to above rules)
+!configs/
+!datasets/spaq/*.csv
+!datasets/spaq/*.txt
+!datasets/spaq/Readme.txt
+!datasets/demo/
+!outputs/fixed_run/
+
+# Keep successful training results including model for CI/CD deployment
+!outputs/fixed_run/config.json
+!outputs/fixed_run/training_results.json
+!outputs/fixed_run/model_best.pth
+
+# Keep documentation and important project files
+!README.md
+!MODEL_CARD.md  
+!USAGE_EXAMPLE.md
+!docs/
+!.github/
+!scripts/
+!src/

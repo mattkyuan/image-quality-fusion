@@ -10,25 +10,23 @@ import sys
 from pathlib import Path
 import torch
 
-# Add project root to path
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from src.image_quality_fusion.models.fusion_model import (
+# Use relative imports within the package
+from ..models.fusion_model import (
     ImageQualityFusionModel, 
     WeightedFusionModel, 
     EnsembleFusionModel
 )
-from src.image_quality_fusion.training.trainer import (
+from .trainer import (
     FusionModelTrainer,
     ImageQualityDataset
 )
-from src.image_quality_fusion.training.data_utils import (
+from .data_utils import (
     prepare_training_data,
     analyze_annotations,
     create_stratified_split,
     validate_training_data
 )
+from ..utils.paths import get_project_root, resolve_path_from_project_root
 
 
 def parse_args():

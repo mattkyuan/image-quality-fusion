@@ -5,7 +5,7 @@ echo "🚀 Starting optimized image quality fusion training..."
 echo "📅 Started at: $(date)"
 
 # Change to project root directory
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # Run training with output captured
 python src/image_quality_fusion/training/train_fusion.py \
