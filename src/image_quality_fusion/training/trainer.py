@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import logging
 from datetime import datetime
+import psutil
 
 from ..models.fusion_model import ImageQualityFusionModel, WeightedFusionModel, EnsembleFusionModel
 from ..data.preprocessing import ImageQualityExtractor

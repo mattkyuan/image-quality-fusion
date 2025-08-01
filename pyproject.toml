@@ -42,6 +42,7 @@ dependencies = [
     "image-quality>=1.2.7",
     "pytorch-lightning>=2.5.2",
     "openpyxl>=3.1.5",
+    "psutil",
 ]
 
 [project.optional-dependencies]
