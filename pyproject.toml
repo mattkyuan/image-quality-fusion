@@ -1,0 +1,150 @@
+# pyproject.toml
+[project]
+name = "image-quality-fusion"
+version = "0.1.0"
+description = "Multi-modal image quality assessment system combining BRISQUE, LAION aesthetics, and neural fusion"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+keywords = ["computer-vision", "image-quality", "deep-learning", "multi-modal", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "torchaudio>=2.0.0",
+    "transformers>=4.30.0",
+    "open-clip-torch>=2.20.0",
+    "pillow>=9.0.0",
+    "numpy>=1.21.0",
+    "pandas>=1.3.0",
+    "scikit-learn>=1.0.0",
+    "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
+    "tqdm>=4.62.0",
+    "pyyaml>=6.0",
+    "opencv-contrib-python>=4.5.0",
+    "scipy>=1.7.0",
+    "requests>=2.25.0",
+    "image-quality>=1.2.7",
+    "pytorch-lightning>=2.5.2",
+    "openpyxl>=3.1.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "flake8>=4.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+
+notebook = [
+    "jupyter>=1.0.0",
+    "ipywidgets>=8.0.0",
+    "plotly>=5.0.0",
+]
+
+all = [
+    "image-quality-fusion[dev,notebook]"
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/image-quality-fusion"
+Repository = "https://github.com/yourusername/image-quality-fusion"
+Documentation = "https://github.com/yourusername/image-quality-fusion#readme"
+"Bug Tracker" = "https://github.com/yourusername/image-quality-fusion/issues"
+
+[project.scripts]
+image-quality = "image_quality_fusion.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/image_quality_fusion"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["image_quality_fusion"]
+
+[tool.pytest.ini_options]
+testpaths = ["src/image_quality_fusion/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--cov=src/image_quality_fusion",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--strict-markers",
+    "-v"
+]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "cv2.*",
+    "clip.*",
+    "scipy.*",
+]
+ignore_missing_imports = true

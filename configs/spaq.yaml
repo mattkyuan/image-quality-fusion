@@ -1,0 +1,29 @@
+# SPAQ Dataset Specific Configuration
+
+# Dataset paths
+dataset:
+  name: "SPAQ"
+  images_dir: "datasets/spaq/images"
+  annotations_file: "datasets/processed/spaq/annotations_fusion.csv"
+  features_dir: "datasets/processed/spaq"
+
+# SPAQ-optimized training parameters
+training:
+  epochs: 150  # More epochs for large dataset
+  batch_size: 64  # Larger batch for 11k samples
+  learning_rate: 0.0005  # Slightly lower LR
+  weight_decay: 0.001  # More regularization
+  patience: 25  # More patience for large dataset
+
+# Model optimized for SPAQ
+model:
+  type: "deep"
+  hidden_dim: 512  # Larger model for complex dataset
+  dropout_rate: 0.4  # More dropout for regularization
+  output_range: [1.0, 10.0]
+
+# SPAQ preprocessing
+preprocessing:
+  normalize_quality: true
+  target_range: [1.0, 10.0]
+  create_splits: true
