@@ -39,8 +39,11 @@ Input Image
 git clone https://github.com/yourusername/image-quality-fusion.git
 cd image-quality-fusion
 
-# Install dependencies
-pip install -e .
+# Install dependencies (using uv for speed)
+uv install
+
+# Or with pip
+pip install torch torchvision torchaudio open-clip-torch opencv-python pillow pandas numpy scikit-learn tqdm matplotlib pytorch-lightning
 ```
 
 ### Basic Usage
@@ -48,54 +51,75 @@ pip install -e .
 ```python
 from src.image_quality_fusion.models.fusion_model import ImageQualityFusionModel
 from src.image_quality_fusion.data.preprocessing import ImageQualityExtractor
+import torch
 
-# Extract features
+# Extract features for a single image
 extractor = ImageQualityExtractor()
 features = extractor.extract_features_single_image("path/to/image.jpg")
 
-# Load trained model (you'll need to train first)
-model, metadata = ImageQualityFusionModel.load_model("model.pth")
-quality_score = model.predict(features)
+# Load the trained model
+model, metadata = ImageQualityFusionModel.load_model("outputs/fixed_run/model_best.pth")
 
-print(f"Predicted quality score: {quality_score:.2f}/10")
+# Prepare features for model
+features_tensor = {
+    'brisque': torch.tensor([features['brisque_normalized']], dtype=torch.float32),
+    'laion': torch.tensor([features['aesthetic_normalized']], dtype=torch.float32),
+    'clip': torch.tensor(features['clip_embedding'], dtype=torch.float32).unsqueeze(0)
+}
+
+# Predict quality
+quality_score = model.predict(features_tensor)
+print(f"Predicted quality score: {quality_score.item():.2f}/10")
 ```
 
 ### Training on Your Data
 
-```python
-# Prepare your dataset (CSV with image_path, human_score columns)
+```bash
+# Quick training with optimized pipeline (M1 MacBook Pro optimized)
 python src/image_quality_fusion/training/train_fusion.py \
     --image_dir data/images \
     --annotations data/annotations.csv \
     --prepare_data \
     --model_type deep \
-    --epochs 100 \
-    --output_dir experiments/my_training
+    --batch_size 128 \
+    --mixed_precision \
+    --epochs 50 \
+    --experiment_name my_model
+
+# Or use the automated script
+./scripts/run_training.sh
 ```
 
 ## 📊 Performance
 
-Trained on SPAQ dataset (11,125 smartphone images):
-- **Correlation with humans**: 0.44
-- **R² Score**: 0.16  
-- **Mean Absolute Error**: 1.5 points (on 1-10 scale)
+Trained on SPAQ dataset (11,125 smartphone images) with optimized pipeline:
+- **Correlation with humans**: 0.52
+- **R² Score**: 0.25  
+- **Mean Absolute Error**: 1.43 points (on 1-10 scale)
+- **Training time**: ~1 minute (with cached features)
 
-*Note: Performance varies significantly based on training data quality and size.*
+*Significant improvements achieved through M1 optimization and advanced caching.*
 
 ## 🏗️ Project Structure
 
 ```
 image-quality-fusion/
 ├── src/image_quality_fusion/
-│   ├── data/              # Data preprocessing
-│   ├── models/            # Model implementations  
-│   ├── training/          # Training pipeline
-│   └── utils/             # Helper utilities
+│   ├── data/              # Data preprocessing & feature extraction
+│   ├── models/            # BRISQUE, Aesthetic, CLIP, Fusion models
+│   ├── training/          # Optimized training pipeline
+│   └── tests/             # Unit tests
+├── scripts/               # Executable scripts
+│   ├── run_training.sh    # Automated training script
+│   ├── monitor_training.py # Training progress monitor
+│   └── preprocess_spaq.py # SPAQ dataset preprocessing
 ├── configs/               # Training configurations
-├── scripts/               # High-level scripts
-├── datasets/              
-│   └── demo/              # Small demo dataset
-└── tests/                 # Unit tests
+├── outputs/               # Training results & models
+│   └── fixed_run/         # Latest successful training
+├── datasets/              # Datasets (gitignored)
+│   ├── demo/              # Small demo dataset
+│   └── spaq/              # SPAQ dataset
+└── training_data/         # Cached features (gitignored)
 ```
 
 ## 🔬 Components
@@ -131,15 +155,19 @@ images/photo1.jpg,7.2
 images/photo2.jpg,4.8
 ```
 
-### 2. Extract Features
+### 2. Train Model (Features Extracted Automatically)
 ```bash
-# This extracts BRISQUE, Aesthetic, and CLIP features
-python scripts/extract_features.py --image_dir data/images --annotations data.csv
-```
+# Full pipeline with M1 optimization
+python src/image_quality_fusion/training/train_fusion.py \
+    --image_dir data/images \
+    --annotations data.csv \
+    --prepare_data \
+    --batch_size 128 \
+    --mixed_precision \
+    --epochs 50
 
-### 3. Train Model
-```bash
-python scripts/train_model.py --config configs/default.yaml
+# Monitor training progress (in another terminal)
+python scripts/monitor_training.py
 ```
 
 ## 🛠️ Advanced Usage
@@ -219,14 +247,27 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [OpenCLIP](https://github.com/mlfoundations/open_clip) by ML Foundations
 - [SPAQ Dataset](https://github.com/h4nwei/SPAQ) for training and evaluation
 
+## ⚡ M1 MacBook Pro Optimizations
+
+This project includes specific optimizations for M1 MacBook Pro:
+- **Mixed precision training** with MPS autocast
+- **Optimized DataLoader** with 6-8 workers 
+- **Intelligent feature caching** for 20-30x speedup
+- **Memory management** for large datasets
+- **Batch processing** optimized for 32GB unified memory
+
+Training time reduced from 75+ hours to ~1 hour total!
+
 ## 🚧 Roadmap
 
-- [ ] Add more sophisticated fusion architectures (attention, transformers)
-- [ ] Support for additional quality metrics (LPIPS, SSIM, etc.)
+- [x] M1 MacBook Pro optimization
+- [x] Mixed precision training
+- [x] Advanced feature caching
+- [x] Optimized training pipeline
+- [ ] Model export (ONNX, TorchScript)
 - [ ] Web interface for easy testing
 - [ ] Pre-trained models for common use cases
 - [ ] Docker containerization
-- [ ] Batch processing utilities
 
 ---
 

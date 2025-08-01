@@ -287,10 +287,8 @@ class SPAQPreprocessor:
                 fusion_df = fusion_df.loc[valid_rows]
                 logger.info(f"✅ Kept {len(fusion_df):,} samples with valid images")
             
-            # Convert to absolute paths
-            fusion_df['image_path'] = fusion_df['image_path'].apply(
-                lambda x: str(self.images_dir / x)
-            )
+            # Keep relative paths for training script compatibility
+            # fusion_df['image_path'] remains as filename only
             
             # Save fusion annotations
             output_file = self.output_dir / "annotations_fusion.csv"

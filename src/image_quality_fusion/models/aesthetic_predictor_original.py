@@ -272,6 +272,38 @@ class OriginalAestheticPredictor:
         
         return scores
     
+    def batch_calculate_aesthetic_scores_from_clip(self, clip_features_list: List[torch.Tensor]) -> List[float]:
+        """
+        Calculate aesthetic scores from pre-computed CLIP features in true batch mode.
+        
+        Args:
+            clip_features_list: List of CLIP feature tensors
+            
+        Returns:
+            List[float]: Aesthetic scores
+        """
+        try:
+            # Stack all features into a batch tensor
+            batch_features = torch.stack(clip_features_list).to(self.device)
+            
+            # Normalize features using original method (batch processing)
+            features_np = batch_features.cpu().detach().numpy()
+            normalized_features = np.array([normalized(feat) for feat in features_np])
+            
+            # Batch prediction through aesthetic model
+            with torch.no_grad():
+                batch_tensor = torch.from_numpy(normalized_features).to(self.device).float()
+                predictions = self.aesthetic_model(batch_tensor)
+                
+            # Convert to list of floats
+            scores = predictions.cpu().numpy().flatten().tolist()
+            return scores
+            
+        except Exception as e:
+            warnings.warn(f"Batch aesthetic scoring failed: {e}")
+            # Fallback to individual processing
+            return [self.calculate_aesthetic_score_from_clip_features(feat) for feat in clip_features_list]
+    
     def normalize_score(self, score: float, target_range: tuple = (0.0, 1.0)) -> float:
         """
         Normalize aesthetic score to target range.

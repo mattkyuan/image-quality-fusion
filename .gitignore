@@ -1,0 +1,85 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+env/
+
+# Training artifacts
+experiments/
+training_data/
+outputs/
+training_*.txt
+training_*.log
+*.pth
+*.ckpt
+*.pt
+*.onnx
+model_*.json
+model_*.pkl
+
+# Feature files
+features.csv
+*_features.csv
+embeddings.npy
+*_embeddings.npy
+features_*.npy
+
+# Training logs and monitoring
+nohup.out
+*.out
+monitor_*.log
+
+# Dataset files (too large for git)
+datasets/spaq/
+datasets/processed/
+datasets/*/images/
+datasets/*/annotations.csv
+*.zip
+*.tar.gz
+*.z01
+*.z02
+*.z03
+*.z04
+*.z05
+*.z06
+
+# Cache files
+__pycache__/
+.cache/
+.pytest_cache/
+*.pyc
+*.pyo
+
+# Model checkpoints and exports
+checkpoints/
+saved_models/
+exported_models/
+
+# System files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+# Lock files
+*.lock

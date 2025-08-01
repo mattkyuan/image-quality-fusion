@@ -64,7 +64,7 @@ def parse_args():
     
     # Training arguments
     parser.add_argument('--batch_size', type=int, default=128,
-                       help='Batch size for training (optimized for M1 with 32GB RAM)')
+                       help='Batch size for training (conservative for M1 with 32GB RAM)')
     parser.add_argument('--epochs', type=int, default=100,
                        help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=1e-3,
@@ -88,8 +88,10 @@ def parse_args():
     parser.add_argument('--device', type=str, default='auto',
                        choices=['auto', 'cpu', 'cuda', 'mps'],
                        help='Device to use for training')
-    parser.add_argument('--num_workers', type=int, default=8,
-                       help='Number of workers for data loading (optimized for M1 8-core CPU)')
+    parser.add_argument('--num_workers', type=int, default=None,
+                       help='Number of workers for data loading (auto-detected for M1 if None)')
+    parser.add_argument('--mixed_precision', action='store_true',
+                       help='Enable mixed precision training for faster training')
     
     # Experiment tracking
     parser.add_argument('--experiment_name', type=str, default=None,
@@ -239,6 +241,12 @@ def main():
         'patience': 5
     }
     
+    print(f"Training configuration:")
+    print(f"  - Batch size: {args.batch_size}")
+    print(f"  - Workers: {args.num_workers or 'auto-detected'}")
+    print(f"  - Mixed precision: {args.mixed_precision}")
+    print(f"  - Device: {args.device}")
+    
     training_history = trainer.train(
         train_dataset=train_dataset,
         val_dataset=val_dataset,
@@ -247,7 +255,9 @@ def main():
         learning_rate=args.learning_rate,
         weight_decay=args.weight_decay,
         patience=args.patience,
-        scheduler_params=scheduler_params
+        scheduler_params=scheduler_params,
+        num_workers=args.num_workers,
+        mixed_precision=args.mixed_precision
     )
     
     # Step 9: Save final results

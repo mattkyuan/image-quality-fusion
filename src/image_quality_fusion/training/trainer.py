@@ -210,7 +210,9 @@ class FusionModelTrainer:
         weight_decay: float = 1e-4,
         patience: int = 10,
         save_best: bool = True,
-        scheduler_params: Optional[Dict] = None
+        scheduler_params: Optional[Dict] = None,
+        num_workers: int = None,
+        mixed_precision: bool = False
     ) -> Dict:
         """
         Train the fusion model
@@ -229,23 +231,21 @@ class FusionModelTrainer:
         Returns:
             Dict: Training history and metrics
         """
-        # Create data loaders
-        train_loader = DataLoader(
+        # Create optimized data loaders
+        train_loader = self._create_optimized_dataloader(
             train_dataset, 
             batch_size=batch_size, 
-            shuffle=True,
-            num_workers=2,
-            pin_memory=True if self.device != 'cpu' else False
+            is_training=True,
+            num_workers=num_workers
         )
         
         val_loader = None
         if val_dataset:
-            val_loader = DataLoader(
+            val_loader = self._create_optimized_dataloader(
                 val_dataset,
                 batch_size=batch_size,
-                shuffle=False,
-                num_workers=2,
-                pin_memory=True if self.device != 'cpu' else False
+                is_training=False,
+                num_workers=num_workers
             )
         
         # Setup optimizer and loss
@@ -256,6 +256,20 @@ class FusionModelTrainer:
         )
         
         criterion = nn.MSELoss()
+        
+        # Setup mixed precision training
+        scaler = None
+        if mixed_precision:
+            if self.device == 'cuda':
+                from torch.cuda.amp import GradScaler
+                scaler = GradScaler()
+                self.logger.info("Using CUDA mixed precision training")
+            elif self.device == 'mps':
+                # MPS doesn't support GradScaler yet, so we'll use torch.autocast only
+                self.logger.info("Using MPS autocast (no gradient scaling)")
+            else:
+                self.logger.warning("Mixed precision requested but not supported on CPU")
+                mixed_precision = False
         
         # Setup scheduler
         scheduler = None
@@ -274,7 +288,7 @@ class FusionModelTrainer:
         
         for epoch in range(epochs):
             # Training phase
-            train_loss = self._train_epoch(train_loader, optimizer, criterion)
+            train_loss = self._train_epoch(train_loader, optimizer, criterion, scaler, mixed_precision)
             self.train_losses.append(train_loss)
             
             # Validation phase
@@ -333,8 +347,8 @@ class FusionModelTrainer:
             'best_val_loss': best_val_loss
         }
     
-    def _train_epoch(self, train_loader: DataLoader, optimizer: optim.Optimizer, criterion: nn.Module) -> float:
-        """Train for one epoch"""
+    def _train_epoch(self, train_loader: DataLoader, optimizer: optim.Optimizer, criterion: nn.Module, scaler=None, mixed_precision: bool = False) -> float:
+        """Train for one epoch with optional mixed precision"""
         self.model.train()
         total_loss = 0.0
         
@@ -344,17 +358,44 @@ class FusionModelTrainer:
             batch_features = {k: v.to(self.device) for k, v in batch_features.items()}
             batch_targets = batch_targets.to(self.device)
             
-            # Forward pass
             optimizer.zero_grad()
-            predictions = self.model(batch_features)
-            loss = criterion(predictions, batch_targets)
             
-            # Backward pass
-            loss.backward()
-            optimizer.step()
+            if mixed_precision and self.device == 'cuda' and scaler is not None:
+                # CUDA mixed precision with gradient scaling
+                with torch.cuda.amp.autocast():
+                    predictions = self.model(batch_features)
+                    loss = criterion(predictions, batch_targets)
+                
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+                
+            elif mixed_precision and self.device == 'mps':
+                # MPS autocast (no gradient scaling available)
+                with torch.autocast(device_type='cpu', dtype=torch.float16):
+                    predictions = self.model(batch_features)
+                    loss = criterion(predictions, batch_targets)
+                
+                loss.backward()
+                optimizer.step()
+                
+            else:
+                # Standard precision training
+                predictions = self.model(batch_features)
+                loss = criterion(predictions, batch_targets)
+                
+                loss.backward()
+                optimizer.step()
             
             total_loss += loss.item()
             progress_bar.set_postfix({'loss': loss.item()})
+            
+            # Memory cleanup every 10 batches
+            if (len(progress_bar) % 10) == 0:
+                if self.device == 'mps':
+                    torch.mps.empty_cache()
+                elif self.device == 'cuda':
+                    torch.cuda.empty_cache()
         
         return total_loss / len(train_loader)
     
@@ -477,6 +518,66 @@ class FusionModelTrainer:
         plt.close()
         
         self.logger.info(f"Training plots saved to {self.output_dir / 'training_plots.png'}")
+    
+    def _create_optimized_dataloader(
+        self, 
+        dataset: Dataset, 
+        batch_size: int, 
+        is_training: bool = True,
+        num_workers: int = None
+    ) -> DataLoader:
+        """
+        Create optimized DataLoader for M1 MacBook Pro
+        
+        Args:
+            dataset: Dataset to load from
+            batch_size: Batch size
+            is_training: Whether this is for training (affects shuffle, drop_last)
+            num_workers: Number of workers (auto-calculated if None)
+            
+        Returns:
+            DataLoader: Optimized data loader
+        """
+        import os
+        
+        # Calculate optimal workers for M1 MacBook Pro (8-core + 2 efficiency)
+        if num_workers is None:
+            num_workers = min(8, max(1, os.cpu_count() - 2))
+        
+        # Conservative batch size to prevent memory issues
+        effective_batch_size = batch_size
+        if hasattr(dataset, 'precomputed') and dataset.precomputed:
+            # Even with cached features, be conservative with large datasets
+            if len(dataset) > 10000:  # Large dataset
+                effective_batch_size = min(batch_size, 256)
+                self.logger.info(f"Large dataset detected, using conservative batch size {effective_batch_size}")
+            else:
+                effective_batch_size = min(batch_size * 2, 512)
+                self.logger.info(f"Using larger batch size {effective_batch_size} for cached features")
+        
+        # Check available memory and adjust if needed
+        try:
+            import psutil
+            available_gb = psutil.virtual_memory().available / (1024**3)
+            if available_gb < 8:  # Less than 8GB available
+                effective_batch_size = min(effective_batch_size, 256)
+                num_workers = min(num_workers, 4)
+                self.logger.warning(f"Limited memory detected, reducing batch size to {effective_batch_size}")
+        except ImportError:
+            pass
+        
+        self.logger.info(f"DataLoader config: batch_size={effective_batch_size}, num_workers={num_workers}, device={self.device}")
+        
+        return DataLoader(
+            dataset,
+            batch_size=effective_batch_size,
+            shuffle=is_training,
+            num_workers=num_workers,
+            pin_memory=self.device in ['mps', 'cuda'],
+            prefetch_factor=4 if num_workers > 0 else 2,
+            persistent_workers=True if num_workers > 0 else False,
+            drop_last=is_training  # Drop incomplete batches in training only
+        )
 
 
 def create_train_val_split(
